@@ -23,5 +23,26 @@ def get_forecast(location, start_date, end_date, unit_group="metric"):
         return json.loads(response.text)
     else:
         raise InvalidUsage(response.text, status_code=response.status_code)
-    
+
+
+def format_forecast(raw_forecast, start_date, end_date, curr_datetime):
+    """Transform raw forecast data into hourly forecast dict keyed by datetime."""
+    days = raw_forecast.get("days")
+    hours = []
+    for day in days:
+        hours.extend(day.get("hours"))
+
+    hours = hours[curr_datetime.hour:(curr_datetime.hour + 24)]
+
+    forecast = {}
+    for hour in hours:
+        datetime = hour.pop("datetime")
+        h = int(datetime[:2])
+        if h >= curr_datetime.hour:
+            datetime = f"{str(start_date)} {datetime}"
+        else:
+            datetime = f"{str(end_date)} {datetime}"
+        forecast[datetime] = hour
+
+    return forecast
 
