@@ -5,6 +5,7 @@ import time
 from urllib.parse import urljoin
 from tqdm import tqdm
 from pathlib import Path
+from datetime import datetime, timedelta
 
 
 def scrape_isw(start_date, end_date, save_result=False, file_name="isw_data.json", max_pages=3):
@@ -128,6 +129,88 @@ def scrape_isw(start_date, end_date, save_result=False, file_name="isw_data.json
     return news_data
 
 
+def _parse_date(raw: str) -> datetime | None:
+    for fmt in ("%B %d, %Y", "%Y-%m-%d"):
+        return datetime.strptime(raw, fmt)
+    return None
+
+def _get_last_date_from_json(file_path: Path) -> datetime | None:
+    if not file_path.exists():
+        return None
+
+    with open(file_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    dates: list[datetime] = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        raw = item.get("date")
+        if not raw:
+            continue
+        dt = _parse_date(raw)
+        if dt:
+            dates.append(dt)
+    return max(dates) if dates else None
+
+def _run_scraper_range():
+    data_file = Path("data/isw/isw_data.json")
+
+    last_dt = _get_last_date_from_json(data_file)
+    today = datetime.today()
+
+    today_str = today.strftime("%Y-%m-%d")
+    end_str = last_dt.strftime("%Y-%m-%d") if last_dt else today_str
+
+    if last_dt:
+        start_dt = last_dt + timedelta(days=1)
+        if start_dt.date() > today.date():
+            print("nothing to scrape")
+            return
+        start_str = start_dt.strftime("%Y-%m-%d")
+        end_str = today.strftime("%Y-%m-%d")
+        print(f"scraping from {start_str} to {end_str} (last stored date {last_dt.date()})")
+
+        new_items = scrape_isw(start_date=start_str, end_date=end_str,
+                               save_result=False, max_pages=100) or []
+        if not new_items:
+            print("no new articles")
+            return
+
+        filtered: list[dict] = []
+        seen_urls: set[str] = set()
+        for item in new_items:
+            url = item.get("url")
+            if url in seen_urls:
+                continue
+            seen_urls.add(url)
+            raw_date = item.get("date", "")
+            dt = _parse_date(raw_date)
+            if not dt or dt.date() < start_dt.date() or dt.date() > today.date():
+                continue
+            filtered.append(item)
+
+        if not filtered:
+            print("no new articles")
+            return
+
+        with open(data_file, "r", encoding="utf-8") as f:
+            existing = json.load(f)
+
+        existing_urls = {itm.get("url") for itm in existing if isinstance(itm, dict)}
+        to_add = [itm for itm in filtered if itm.get("url") not in existing_urls]
+
+        merged = existing + to_add
+        with open(data_file, "w", encoding="utf-8") as f:
+            json.dump(merged, f, ensure_ascii=False, indent=4)
+
+        print(f"added {len(to_add)} articles (total {len(merged)})")
+    else:
+        default_start = datetime(2022, 2, 24)
+        start_str = default_start.strftime("%Y-%m-%d")
+        end_str = today.strftime("%Y-%m-%d")
+        print(f"no existing ISW data => scraping full range {start_str} to {end_str}")
+        scrape_isw(start_date=start_str, end_date=end_str, save_result=True, max_pages=100)
+
 if __name__ == "__main__":
-    data = scrape_isw(start_date="2022-02-24", end_date="2026-03-04", save_result=True, max_pages=100)
-    print(data)
+    _run_scraper_range()
