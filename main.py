@@ -3,7 +3,6 @@ from flask import Flask
 from pathlib import Path
 from datetime import datetime, timedelta
 from app.api.forecast_route import forecast_bp
-from app.api.alarm_api import alarm_bp
 from app.errors import register_error_handlers
 from app.core.scraper_isw import scrape_isw
 
