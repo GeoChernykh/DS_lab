@@ -47,3 +47,4 @@ def format_forecast(raw_forecast, start_date, end_date, curr_datetime):
 
     return forecast
 
+

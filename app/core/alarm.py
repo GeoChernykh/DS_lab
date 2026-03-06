@@ -58,3 +58,7 @@ def format_alarm(region: str) -> dict:
             "type": region_alarm.get("type") if region_alarm else None,
         },
     }
+
+
+if __name__ == "__main__":
+    print(get_alarm_status())
