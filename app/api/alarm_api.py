@@ -14,5 +14,5 @@ def alarm_endpoint():
     
     region = request.args.get("region")
 
-    result = format_alarm(region=region)
+    result = format_alarm()
     return jsonify(result)
