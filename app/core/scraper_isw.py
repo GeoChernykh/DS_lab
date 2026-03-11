@@ -131,7 +131,10 @@ def scrape_isw(start_date, end_date, save_result=False, file_name="isw_data.json
 
 def _parse_date(raw: str) -> datetime | None:
     for fmt in ("%B %d, %Y", "%Y-%m-%d"):
-        return datetime.strptime(raw, fmt)
+        try:
+            return datetime.strptime(raw, fmt)
+        except ValueError:
+            continue
     return None
 
 def _get_last_date_from_json(file_path: Path) -> datetime | None:
@@ -200,7 +203,7 @@ def _run_scraper_range():
         existing_urls = {itm.get("url") for itm in existing if isinstance(itm, dict)}
         to_add = [itm for itm in filtered if itm.get("url") not in existing_urls]
 
-        merged = existing + to_add
+        merged = to_add + existing
         with open(data_file, "w", encoding="utf-8") as f:
             json.dump(merged, f, ensure_ascii=False, indent=4)
 
