@@ -5,7 +5,7 @@ import os
 
 import requests
 
-from ..errors import InvalidUsage
+from app.errors import InvalidUsage
 
 load_dotenv()
 
