@@ -205,10 +205,10 @@ def _run_scraper_range():
         start_str = default_start.strftime("%Y-%m-%d")
         end_str = today.strftime("%Y-%m-%d")
         print(f"no existing ISW data => scraping full range {start_str} to {end_str}")
-        scrape_isw(start_date=start_str, end_date=end_str, 
+        scrape_isw(start_date=start_str, end_date=end_str, # TODO: add result to database
                    save_result=True, file_name="isw_data_v2", 
                    max_pages=100)
 
 if __name__ == "__main__":
-    # _run_scraper_range()
-    scrape_isw(start_date=date.today() - timedelta(days=31), save_result=True, file_name="temp", max_pages=100)
+    _run_scraper_range()
+    # scrape_isw(start_date=date.today() - timedelta(days=60), save_result=True, file_name="temp", max_pages=100)

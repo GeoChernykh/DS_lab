@@ -5,3 +5,4 @@ __pycache__
 data
 session.session
 .ipynb_checkpoints
+test.ipynb

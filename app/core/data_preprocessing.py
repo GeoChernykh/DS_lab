@@ -36,10 +36,6 @@ kmeans = joblib.load(models_path / "isw_kmeans.joblib")
 pca = joblib.load(models_path / "isw_pca.joblib")
 ohe = joblib.load(models_path / "isw_ohe.joblib")
 
-isw = pd.read_json("data/isw/temp.json", convert_dates=["date"]).sort_values("date", ascending=False).reset_index(drop=True)
-
-isw["date"] = isw["date"].dt.date
-
 TODAY = datetime.today().date()
 
 stop_words = {
@@ -245,7 +241,6 @@ stop_words = {
  "dot"}
 
 def isw_preprocess(isw):
-    isw = isw.loc[isw.date >= TODAY - timedelta(days=31)]
     isw = isw.loc[isw.date >= datetime(2022, 2, 24).date()]
 
     isw["text_length"] = isw['text'].apply(len)
@@ -281,23 +276,6 @@ def isw_preprocess(isw):
 
     pca_cols = list(pca_features.columns)
 
-    # Якщо за день кілька рядків — усереднюємо
-    daily = (
-        isw.groupby("date")[pca_cols + ["cluster", "text_length"]]
-        .agg({**{c: "mean" for c in pca_cols}, "cluster": lambda x: x.value_counts().idxmax(), "text_length": "sum"})
-        .reset_index()
-    )
-    daily = daily.sort_values("date").reset_index(drop=True)
-
-    date_range = pd.DataFrame({
-        "date": pd.date_range(TODAY - timedelta(days=31), TODAY, freq="D")
-    })
-
-    date_range.date = date_range.date.dt.date
-
-    daily = pd.merge(date_range, daily, how='left', on='date')
-
-    daily.text_length = daily.text_length.fillna(0)
 
     WINDOWS = [7, 30] # вікна в днях
     N_CLUSTERS = pd.Series(cluster_labels).nunique()
@@ -345,12 +323,12 @@ def isw_preprocess(isw):
         centroid_shift   = []
         anom_count       = []
 
-        for i, row in daily.iterrows():
+        for i, row in isw.iterrows():
             current_date = row["date"]
             start_date   = current_date - pd.Timedelta(days=W)
 
-            mask_cur  = (daily["date"] >= start_date) & (daily["date"] < current_date)
-            window_df = daily[mask_cur]
+            mask_cur  = (isw["date"] >= start_date) & (isw["date"] < current_date)
+            window_df = isw[mask_cur]
 
             if len(window_df) == 0:
                 news_count.append(0)
@@ -377,11 +355,11 @@ def isw_preprocess(isw):
             dom_cluster_share.append(float(dom_share))
 
             prev_start = start_date - pd.Timedelta(days=W)
-            mask_prev  = (daily["date"] >= prev_start) & (daily["date"] < start_date)
+            mask_prev  = (isw["date"] >= prev_start) & (isw["date"] < start_date)
             prev_count = mask_prev.sum()
             news_velocity.append(len(window_df) - prev_count)
 
-            prev_df = daily[mask_prev]
+            prev_df = isw[mask_prev]
             if len(prev_df) > 0:
                 prev_centroid = centroid(prev_df[pca_cols].values)
                 centroid_shift.append(cosine_dist(win_centroid, prev_centroid))
@@ -390,20 +368,20 @@ def isw_preprocess(isw):
             
             anom_count.append(anomaly_count(win_mat, win_centroid))
 
-        daily[f"news_count_{W}d"]            = news_count
-        daily[f"avg_dist_centroid_{W}d"]     = avg_dist_centroid
-        daily[f"topic_entropy_{W}d"]         = t_entropy
-        daily[f"dom_cluster_share_{W}d"]     = dom_cluster_share
-        daily[f"news_velocity_{W}d"]         = news_velocity
-        daily[f"centroid_shift_{W}d"]        = centroid_shift
-        daily[f"anomaly_count_{W}d"]         = anom_count
+        isw[f"news_count_{W}d"]            = news_count
+        isw[f"avg_dist_centroid_{W}d"]     = avg_dist_centroid
+        isw[f"topic_entropy_{W}d"]         = t_entropy
+        isw[f"dom_cluster_share_{W}d"]     = dom_cluster_share
+        isw[f"news_velocity_{W}d"]         = news_velocity
+        isw[f"centroid_shift_{W}d"]        = centroid_shift
+        isw[f"anomaly_count_{W}d"]         = anom_count
 
     feature_cols = ["date", "text_length", "cluster"] + [
-        c for c in daily.columns
+        c for c in isw.columns
         if any(c.endswith(f"_{W}d") for W in WINDOWS)
     ]
 
-    isw = daily[feature_cols]
+    isw = isw[feature_cols]
 
     encoded_clusters = ohe.transform(isw[["cluster"]])
 
@@ -412,8 +390,35 @@ def isw_preprocess(isw):
 
     isw = pd.concat([isw, encoded_clusters], axis=1).drop(columns="cluster")
 
-    temp = isw.groupby("date")[["text_length"] + cluster_cols].sum()
+    temp = isw.groupby("date")[["text_length"] + cluster_cols].sum().reset_index()
+
     cols_to_merge = list(set(isw.columns) - {"text_length"} - set(cluster_cols))
 
-    isw = pd.merge(temp, isw[cols_to_merge], how="left", left_index=True, right_on="date") \
+    isw = pd.merge(temp, isw[cols_to_merge].drop_duplicates(), how="left", on="date") \
                 .reset_index(drop=True)
+
+    date_range = pd.DataFrame({
+        "date": pd.date_range(isw["date"].min(), TODAY, freq="D")
+    }).date.dt.date
+
+    isw = pd.merge(date_range, isw, how='left', on='date')
+
+    zero_cols = ["text_length", "news_velocity_7d", "news_velocity_30d", "anomaly_count_7d", "anomaly_count_30d"] + cluster_cols
+
+    ffill_cols = [
+        "avg_dist_centroid_7d", "avg_dist_centroid_30d",
+        "topic_entropy_7d",     "topic_entropy_30d",
+        "dom_cluster_share_7d", "dom_cluster_share_30d",
+        "centroid_shift_7d",    "centroid_shift_30d",
+        "news_count_7d",        "news_count_30d",
+    ]
+
+    isw[zero_cols]  = isw[zero_cols].fillna(0)
+    isw[ffill_cols] = isw[ffill_cols].ffill()
+
+    cols_to_int = ["text_length", "news_count_7d", "news_count_30d", "anomaly_count_7d", "anomaly_count_30d",
+                "news_velocity_7d", "news_velocity_30d"] + cluster_cols
+
+    isw[cols_to_int] = isw[cols_to_int].astype(int)
+
+    return isw
