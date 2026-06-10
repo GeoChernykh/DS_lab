@@ -1,6 +1,7 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 from app.api.alarm_forecast import alarm_forecast_bp
+from app.api.generate_forecast import generate_forecast_bp
 from app.errors import InvalidUsage
 
 
@@ -16,6 +17,7 @@ def handle_invalid_usage(error):
 
 
 app.register_blueprint(alarm_forecast_bp)
+app.register_blueprint(generate_forecast_bp)
 
 
 if __name__ == "__main__":

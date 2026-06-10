@@ -93,7 +93,8 @@ class AlarmsDb:
                 latest_date = dt.date(2022, 2, 24)
 
         print(f"Scraping alarms from {latest_date} to {dt.date.today()}")
-        date_range = pd.date_range(latest_date, dt.date.today() + dt.timedelta(days=1), freq='d')
+        # date_range = pd.date_range(latest_date, dt.date.today() + dt.timedelta(days=1), freq='d')
+        date_range = pd.date_range(dt.date.today() - dt.timedelta(days=1), dt.date.today() + dt.timedelta(days=1), freq='d') # For testing purpose
 
         for date in date_range:
             try:
