@@ -35,21 +35,25 @@ class Database:
         self.close()
 
     def update(self) -> None:
+        print("SYSTEM | Updating alarms data...")
         self.alarms.update()
-        print("Alarms updated.")
+        print("SYSTEM | Alarms data updated succesfully.")
         
+        print("SYSTEM | Updating weather data...")
         weather_last_date = self.weather.get_latest_date()
         if weather_last_date != dt.date.today() + dt.timedelta(days=1):
             self.weather.update()
-            print("Weather updated.")
+            print("SYSTEM | Weather data updated succesfully.")
         else:
-            print("Weather already up to date.")
+            print("SYSTEM | Weather data already up to date.")
         
+        print("SYSTEM | Updating ISW data...")
         self.isw.update()
-        print("ISW updated.")
+        print("ISW data updated succesfully.")
 
+        print("SYSTEM | Updating Telegram data...")
         self.telegram.update()
-        print("Telegram updated.")      
+        print("Telegram data updated succesfully.")      
 
     def get_merged(self, start_date=None) -> pd.DataFrame:
         isw_start_date = None

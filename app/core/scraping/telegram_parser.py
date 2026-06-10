@@ -1,4 +1,5 @@
 import os
+import asyncio
 from dotenv import load_dotenv
 from telethon.sync import TelegramClient
 import pandas as pd
@@ -11,6 +12,17 @@ api_id = os.getenv('TG_API_ID')
 api_hash = os.getenv('API_HASH')
 
 DEFAULT_CHANNELS = ["kievreal1", "ps_zsu", "air_alert_ua", "war_monitor"]
+
+
+def _ensure_event_loop():
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            raise RuntimeError("Event loop closed")
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return asyncio.get_event_loop()
 
 
 def fetch_messages(
@@ -31,6 +43,7 @@ def fetch_messages(
     now = datetime.now(tz=timezone.utc)
     data = []
 
+    _ensure_event_loop()
     with TelegramClient("session", api_id, api_hash) as client:
         for channel in channels:
             print(f"Парсинг каналу: {channel}")
