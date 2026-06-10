@@ -18,15 +18,15 @@ def forecast():
     forecast_path = forecast_dir / file_name
 
     if not forecast_path.exists():
-        # try:
-        #     result = generate_forecast(save_to_file=True)
-        #     return jsonify(result)
-        # except Exception as exc:
-        #     print(f"Forecast generation failed: {exc}")
+        try:
+            result = generate_forecast(save_to_file=True)
+            return jsonify(result)
+        except Exception as exc:
+            print(f"Forecast generation failed: {exc}")
 
-        prev_hour_dt = curr_dt - dt.timedelta(hours=1)
-        file_name = f"alarm_forecast_{prev_hour_dt.strftime('%Y%m%d%H00')}.json"
-        forecast_path = forecast_dir / file_name
+        # prev_hour_dt = curr_dt - dt.timedelta(hours=1)
+        # file_name = f"alarm_forecast_{prev_hour_dt.strftime('%Y%m%d%H00')}.json"
+        # forecast_path = forecast_dir / file_name
 
     if not forecast_path.exists():
         raise InvalidUsage('Forecast data not available', status_code=404)

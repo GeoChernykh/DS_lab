@@ -75,9 +75,21 @@ class AlarmsDb:
 
         return self.con.execute(query, params).fetchall()
     
-    def get_latest_date(self) -> str | None:
+    def get_latest_date(self) -> dt.date | None:
         row = self.con.execute("SELECT MAX(time) FROM alarms").fetchone()
-        return row[0]
+        if not row or row[0] is None:
+            return None
+
+        latest = row[0]
+        if isinstance(latest, dt.date):
+            return latest
+        if isinstance(latest, str):
+            try:
+                return dt.date.fromisoformat(latest)
+            except ValueError:
+                return dt.datetime.fromisoformat(latest).date()
+
+        return None
 
     def update(self):
         # get last date and run script
@@ -92,9 +104,11 @@ class AlarmsDb:
                 print("No existing data. Scraping...")
                 latest_date = dt.date(2022, 2, 24)
 
-        print(f"Scraping alarms from {latest_date} to {dt.date.today()}")
-        # date_range = pd.date_range(latest_date, dt.date.today() + dt.timedelta(days=1), freq='d')
-        date_range = pd.date_range(dt.date.today() - dt.timedelta(days=1), dt.date.today() + dt.timedelta(days=1), freq='d') # For testing purpose
+        print(f"Scraping alarms")
+        if latest_date < dt.date.today() - dt.timedelta(days=1):
+            date_range = pd.date_range(dt.date.today() - dt.timedelta(days=1), dt.date.today() + dt.timedelta(days=1), freq='d') # For testing purpose
+        else:
+            date_range = pd.date_range(latest_date, dt.date.today() + dt.timedelta(days=1), freq='d')
 
         for date in date_range:
             try:
