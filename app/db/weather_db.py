@@ -2,7 +2,7 @@ import sqlite3
 from pathlib import Path
 import pandas as pd
 import datetime as dt
-from app.core.scraping.weather_forecast import get_formated_forecast
+from app.scraping.weather_forecast import get_formated_forecast
 
 
 class WeatherDb:

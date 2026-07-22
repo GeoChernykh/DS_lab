@@ -11,7 +11,12 @@ load_dotenv()
 api_id = os.getenv('TG_API_ID')
 api_hash = os.getenv('API_HASH')
 
-DEFAULT_CHANNELS = ["kievreal1", "ps_zsu", "air_alert_ua", "war_monitor"]
+DEFAULT_CHANNELS = [
+    "kievreal1",
+    "ps_zsu", 
+    "air_alert_ua", 
+    "war_monitor"
+]
 
 
 def _ensure_event_loop():

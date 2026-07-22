@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import pandas as pd
 from app.core.features.telegram_features import preprocess_messages
-from app.core.scraping.telegram_parser import fetch_messages
+from app.scraping.telegram_parser import fetch_messages
 import datetime as dt
 
 

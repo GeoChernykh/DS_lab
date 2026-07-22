@@ -178,3 +178,7 @@ session.session
 test.ipynb
 *.db
 keys
+
+.claude
+*.md
+graphify-out

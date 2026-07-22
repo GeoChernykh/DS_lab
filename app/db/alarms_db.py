@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 import datetime as dt
 from app.core.features.alarms_features import explode_by_hour, fix_regions
-from app.core.scraping.alarm import get_alarms_history_by_hour
+from app.scraping.alarm import get_alarms_history_by_hour
 
 
 class AlarmsDb:

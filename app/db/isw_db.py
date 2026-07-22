@@ -1,7 +1,7 @@
 import sqlite3
 import json
 from pathlib import Path
-from app.core.scraping.scraper_isw import scrape_isw
+from app.scraping.scraper_isw import scrape_isw
 
 
 class IswDb:
